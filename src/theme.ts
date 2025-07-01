@@ -49,6 +49,36 @@ export const theme = createTheme({
         },
       },
     },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          color: "#8B4513",
+          fontWeight: 700,
+          background: "#fff",
+          borderRadius: 16,
+          paddingLeft: 12,
+          paddingRight: 12,
+          boxShadow: "none",
+          fontSize: "1rem",
+          "&:hover": {
+            background: "rgba(160, 82, 45, 0.2)",
+          },
+        },
+        contained: {
+          background: "#8B4513",
+          color: "#fff",
+          fontWeight: 700,
+          borderRadius: 12,
+          paddingLeft: 20,
+          paddingRight: 20,
+          boxShadow: "0 2px 8px 0 #8B4513",
+          fontSize: "1.4rem",
+          "&:hover": {
+            background: "rgba(160, 82, 45, 1)",
+          },
+        },
+      },
+    },
   },
   breakpoints: {
     values: {

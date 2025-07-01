@@ -1,490 +1,292 @@
-import { useEffect, useRef, useState } from "react";
-import { Box, useMediaQuery, Drawer, IconButton } from "@mui/material";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useState, useRef, useEffect } from "react";
+import {
+  Box,
+  Button,
+  Typography,
+  CircularProgress,
+  Container,
+} from "@mui/material";
+import Header from "./Header";
+import { HEADER_HEIGHT } from "../constants";
+import Footer from "./Footer";
 
-gsap.registerPlugin(ScrollTrigger);
+const jokeMessages = [
+  "Nothing good will ever come out of you… probably.",
+  "You are a true $asscoin legend. Or maybe just a legend in your own mind.",
+  "Congratulations! You scanned... something. We hope you're proud.",
+  "Legend says the real treasure was the scan we made along the way.",
+  "This scan result is as valuable as a screen door on a submarine.",
+  "You did it! And by 'it', we mean absolutely nothing.",
+  "If you expected more, that's on you.",
+  "Scan complete! Please consult your local psychic for interpretation.",
+  "You scanned. The blockchain is unchanged.",
+  "Wow! Such scan. Much result. Very $asscoin.",
+];
 
 const Banner = () => {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const isMd = useMediaQuery((theme) => theme.breakpoints.up("md"));
-  const isXl = useMediaQuery((theme) => theme.breakpoints.up("xl"));
+  const [phase, setPhase] = useState<"idle" | "scanning" | "result">("idle");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [showResultText, setShowResultText] = useState(true);
+  const [jokeMessage, setJokeMessage] = useState(jokeMessages[0]);
 
-  const flyZoneRef = useRef(null);
-  const figureRef = useRef(null);
-  const heartRef = useRef(null);
+  const showRandomJoke = () => {
+    const randomIndex = Math.floor(Math.random() * jokeMessages.length);
+    setJokeMessage(jokeMessages[randomIndex]);
+    setShowResultText(false);
+  };
 
   useEffect(() => {
-    const flyZone = flyZoneRef.current;
-    const figure = figureRef.current;
-    const heart = heartRef.current;
+    let stream: MediaStream | null = null;
+    if (phase === "scanning" && videoRef.current) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((mediaStream) => {
+          stream = mediaStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+            videoRef.current.play();
+            setTimeout(() => setPhase("result"), 5000);
+          }
+        })
+        .catch(() => {
+          setTimeout(() => setPhase("result"), 5000);
+        });
+    }
 
-    ScrollTrigger.getAll().forEach((t) => t.kill());
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [phase]);
 
-    const viewportHeight = window.innerHeight;
+  useEffect(() => {
+    if (phase === "result") {
+      setShowResultText(true); // Reset to show text first
+      const timer = setTimeout(() => {
+        showRandomJoke();
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
 
-    // Set initial centering using GSAP's transform percent
-    gsap.set([figure], {
-      xPercent: -50,
-      y: "100px",
-    });
-
-    gsap.set([heart], {
-      xPercent: -50,
-      yPercent: -50,
-    });
-
-    gsap.to(figure, {
-      y: isXl
-        ? viewportHeight * 2.7
-        : isMd
-        ? viewportHeight * 2.3
-        : viewportHeight * 2.3, // move full height down
-      ease: "none",
-      opacity: -1,
-      scrollTrigger: {
-        trigger: flyZone,
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-        markers: false,
-      },
-    });
-
-    gsap.to(heart, {
-      y: isXl
-        ? viewportHeight * 1.5
-        : isMd
-        ? viewportHeight * 1.2
-        : window.innerHeight > 670
-        ? viewportHeight * 2
-        : viewportHeight * 1.6, // less movement
-      scale: isXl ? 1.5 : isMd ? 1.3 : 1.4,
-      ease: "none",
-      scrollTrigger: {
-        trigger: flyZone,
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-        markers: false,
-      },
-    });
-
-    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
-  }, []);
+  // Simulate scanning process
+  const handleStart = () => {
+    setPhase("scanning");
+  };
 
   return (
     <Box
-      ref={flyZoneRef}
-      bgcolor='black'
-      minHeight='200vh'
+      minHeight='100vh'
       position='relative'
-      overflow='hidden'
       width='100%'
+      display='flex'
+      flexDirection='column'
+      alignItems='center'
+      justifyContent='center'
     >
-      <Box
-        component='img'
-        src='/bg.gif'
+      <Header />
+      <Container
         sx={{
-          position: "absolute",
-          top: { xs: "24%", md: 0 },
-          width: "100%",
-          display: { xs: "none", md: "block" },
-        }}
-      />
-      <Box
-        component='img'
-        src='/bg2.gif'
-        sx={{
-          position: "absolute",
-          top: { xs: "8%", md: 0 },
-          width: "100%",
-          display: { xs: "block", md: "none" },
-        }}
-      />
-
-      <Box
-        ref={figureRef}
-        component='img'
-        src='/pic_8.png'
-        sx={{
-          position: "absolute",
-          top: "0%",
-          left: "50%",
-          width: { xs: "270px", md: "350px", xl: "500px" },
-          zIndex: 5,
-        }}
-      />
-      <Box
-        ref={heartRef}
-        component='img'
-        src='/pic_9.png'
-        sx={{
-          position: "absolute",
-          top: {
-            xs:
-              window.innerHeight > 670
-                ? "calc(50vh - 40px)"
-                : "calc(50vh + 80px)",
-            md: "calc(50vh + 170px)",
-            xl: "calc(50vh + 150px)",
-          },
-          left: "50%",
-          width: { xs: "270px", md: "400px", xl: "700px" },
-          zIndex: 10,
-        }}
-      />
-      <Box
-        component='img'
-        src='/bg.gif'
-        sx={{
-          position: "absolute",
-          bottom: { xs: "22%", md: 0 },
-          width: "100%",
-          display: { xs: "none", md: "block" },
-        }}
-      />
-      <Box
-        component='img'
-        src='/bg2.gif'
-        sx={{
-          position: "absolute",
-          bottom: { xs: "18%", md: 0 },
-          width: "100%",
-          display: { xs: "block", md: "none" },
-        }}
-      />
-
-      <Box
-        component='a'
-        href='https://soundcloud.com/charts/top'
-        target='_blank'
-        sx={{
-          position: "fixed",
-          top: { md: "8%" },
-          right: { xs: "unset", md: 72 },
-          left: { xs: 40, md: "unset" },
-          bottom: {
-            xs: 30,
-            md: "unset",
-          },
-          img: { transition: "0.4s" },
-          ":hover": {
-            img: {
-              transform: "scale(1.2)",
-            },
-          },
+          height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+          mt: `${HEADER_HEIGHT}px`,
+          py: 5,
         }}
       >
-        <Box
-          component='img'
-          src='/pic_11.png'
-          sx={{
-            height: {
-              xs: 60,
-              md: 90,
-            },
-          }}
-        />
-      </Box>
-
-      <IconButton
-        onClick={() => setIsDrawerOpen(true)}
-        sx={{
-          position: "fixed",
-          top: 20,
-          right: 20,
-          zIndex: 1000,
-          display: { xs: "flex", md: "none" },
-          color: "white",
-        }}
-      >
-        <Box component='img' src='/menu.png' height={32} />
-      </IconButton>
-
-      <Drawer
-        anchor='right'
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        sx={{
-          "& .MuiDrawer-paper": {
-            width: "100%",
-            bgcolor: "black",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 4,
-            position: "relative",
-          },
-        }}
-      >
-        <IconButton
-          onClick={() => setIsDrawerOpen(false)}
-          sx={{
-            position: "absolute",
-            top: 20,
-            right: 20,
-            color: "white",
-          }}
-        >
-          <Box component='img' src='/close.png' height={32} />
-        </IconButton>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://www.dextools.io/app/en/solana/pair-explorer/GzDbij7jzZm83Xe5xG9un9zgnLmZ2XnMxaBuQxcWNkdx?t=1751280139537'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box component='img' src='/pic_2.png' sx={{ height: 55 }} />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://dexscreener.com/solana/AS83uZJ9SoaDTZfe7Yf4XKNfXPM6mCNTnFLu7wdipump'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box component='img' src='/pic_3.png' sx={{ height: 75 }} />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://jup.ag/swap/SOL-AS83uZJ9SoaDTZfe7Yf4XKNfXPM6mCNTnFLu7wdipump'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box component='img' src='/pic_6.png' sx={{ height: 90 }} />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://x.com/TheAriaCloud'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box component='img' src='/x1.png' sx={{ height: 75 }} />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://t.me/TheAriaCloud'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box component='img' src='/pic_5.png' sx={{ height: 55 }} />
-        </Box>
-      </Drawer>
-
-      <Box
-        component='img'
-        src='/pic_10.png'
-        sx={{
-          position: "absolute",
-          bottom: { xs: "13%", md: "15%", xl: "13%" },
-          left: "50%",
-          transform: "translateX(-50%)",
-          height: { xs: 30, md: 50, xl: "auto" },
-        }}
-      />
-
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: { xs: "10%", md: "10%", xl: "8%" },
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 11,
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <Box
-          component='img'
-          src='/pic_7.png'
-          sx={{
-            width: { xs: "100%", md: "auto" },
-            height: { md: 50, xl: "auto" },
-          }}
-        ></Box>
-        <Box
-          component='img'
-          src='/contract.png'
-          onClick={async (e) => {
-            try {
-              await navigator.clipboard.writeText(
-                "HKccVWHaz3yd2zt8VFMc72HaTGGboxtE5W68vLVJpump"
-              );
-
-              const img = e.target as HTMLImageElement;
-
-              setTimeout(() => {
-                img.style.transform = "translate(-50%, -50%) scale(1.25)";
-                img.style.transition = "transform 0.3s ease-out";
-
-                setTimeout(() => {
-                  img.style.transform = "translate(-50%, -50%) scale(1)";
-                  img.style.transition = "transform 0.3s ease-out";
-                }, 300);
-              }, 300);
-            } catch (e) {
-              // fallback: do nothing
-            }
-          }}
-          sx={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            ":hover": {
-              cursor: "pointer",
-            },
-            width: { xs: "80%", md: "auto" },
-            height: { xs: "auto", md: 25, xl: 40 },
-          }}
-        ></Box>
-      </Box>
-
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: { md: "3%", xl: "2%" },
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: { xs: "none", md: "flex" },
-          alignItems: "center",
-          gap: 5,
-          zIndex: 111,
-        }}
-      >
-        <Box
-          component='a'
-          target='_blank'
-          href='https://www.dextools.io/app/en/solana/pair-explorer/GzDbij7jzZm83Xe5xG9un9zgnLmZ2XnMxaBuQxcWNkdx?t=1751280139537'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
+        {phase === "idle" && (
+          <>
+            {/* Scanner illustration */}
+            <Box
+              sx={{
+                width: { xs: "100%" },
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                position: "relative",
+              }}
+            >
+              <Box
+                sx={{
+                  width: { xs: 270, md: 370 },
+                  height: { xs: 300, md: 500 },
+                  borderRadius: "50% / 45%",
+                  border: "6px dashed #8B4513 ",
+                  background: "8B4513 ",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mb: 3,
+                  boxShadow: "0 0 16px 0 #8B4513 ",
+                }}
+              />
+              <Typography
+                variant='h1'
+                color='#8B4513 '
+                mb={2}
+                textAlign='center'
+                fontSize={{ xs: 25, md: 50 }}
+              >
+                Face to screen
+                <br /> Let's find out what kinda mistake you are
+              </Typography>
+              <Box display='flex' justifyContent='center' mt={3}>
+                <Button
+                  variant='contained'
+                  color='primary'
+                  onClick={handleStart}
+                >
+                  Start
+                </Button>
+              </Box>
+              {/* You can add an SVG or image here */}
+            </Box>
+          </>
+        )}
+        {phase === "scanning" && (
           <Box
-            component='img'
-            src='/pic_2.png'
-            sx={{ height: { md: 40, xl: 50 } }}
-          />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://dexscreener.com/solana/AS83uZJ9SoaDTZfe7Yf4XKNfXPM6mCNTnFLu7wdipump'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box
-            component='img'
-            src='/pic_3.png'
-            sx={{ height: { md: 55, xl: 70 } }}
-          />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://jup.ag/swap/SOL-AS83uZJ9SoaDTZfe7Yf4XKNfXPM6mCNTnFLu7wdipump'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box
-            component='img'
-            src='/pic_6.png'
-            sx={{ height: { md: 70, xl: 90 } }}
-          />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://x.com/TheAriaCloud'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box
-            component='img'
-            src='/x1.png'
-            sx={{ height: { md: 55, xl: 70 } }}
-          />
-        </Box>
-        <Box
-          component='a'
-          target='_blank'
-          href='https://t.me/TheAriaCloud'
-          sx={{
-            img: { transition: "0.4s" },
-            ":hover": {
-              img: {
-                transform: "scale(1.2)",
-              },
-            },
-          }}
-        >
-          <Box
-            component='img'
-            src='/pic_5.png'
-            sx={{ height: { md: 40, xl: 50 } }}
-          />
-        </Box>
-      </Box>
+            sx={{
+              width: { xs: "100%" },
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+            }}
+          >
+            {/* Webcam video in a circle */}
+            <Box
+              sx={{
+                width: { xs: 270, md: 370 },
+                height: { xs: 300, md: 500 },
+                borderRadius: "50% / 45%",
+                border: "6px dashed #8B4513 ",
+                background: "8B4513 ",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 3,
+                boxShadow: "0 0 16px 0 #8B4513 ",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <video
+                ref={videoRef}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  background: "#222",
+                }}
+                autoPlay
+                muted
+                playsInline
+              />
+              {/* Animated scanning line */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  width: "100%",
+                  height: "6px",
+                  background: "rgba(255,255,255,0.85)",
+                  boxShadow: "0 0 16px 4px #fff, 0 0 32px 8px #8B4513",
+                  borderRadius: "8px",
+                  zIndex: 2,
+                  animation: "scanLineMove 5s infinite",
+                  top: 0,
+                  opacity: 0.95,
+                  // Add a subtle border for a more "scanner" look
+                  border: "1.5px solid #8B4513",
+                  // Optionally, add a gradient for a more "laser" effect
+                  backgroundImage:
+                    "linear-gradient(90deg, rgba(255,255,255,0.95) 0%, #ffe7a0 40%, #8B4513 100%)",
+                }}
+              />
+              <style>
+                {`
+                  @keyframes scanLineMove {
+                    0% {
+                      top: 0;
+                    }
+                    45% {
+                      top: calc(100% - 4px);
+                    }
+                    55% {
+                      top: calc(100% - 4px);
+                    }
+                    100% {
+                      top: 0;
+                    }
+                  }
+                `}
+              </style>
+            </Box>
+            <CircularProgress size={60} sx={{ color: "#8B4513 ", mb: 2 }} />
+            <Typography
+              variant='h1'
+              color='#8B4513 '
+              mb={2}
+              textAlign='center'
+              fontSize={{ xs: 25, md: 50 }}
+            >
+              Scanning...
+            </Typography>
+          </Box>
+        )}
+        {phase === "result" && (
+          <>
+            <Box
+              sx={{
+                width: { xs: "100%" },
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                textAlign: "center",
+              }}
+            >
+              {showResultText ? (
+                <>
+                  <Typography
+                    variant='h1'
+                    color='#8B4513 '
+                    mb={2}
+                    fontSize={{ xs: 25, md: 50 }}
+                  >
+                    Scan Complete!
+                  </Typography>
+                  <Typography
+                    variant='body1'
+                    fontSize={{ xs: 20, md: 40 }}
+                    color='#000'
+                    mb={2}
+                  >
+                    {jokeMessage}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <img src='/shit.jpeg' alt='Result' style={{ height: 400 }} />
+                  <Box display='flex' justifyContent='center' mt={3}>
+                    <Button
+                      variant='contained'
+                      color='primary'
+                      onClick={handleStart}
+                    >
+                      Scan again
+                    </Button>
+                  </Box>
+                </>
+              )}
+            </Box>
+          </>
+        )}
+      </Container>
+      <Footer />
     </Box>
   );
 };
